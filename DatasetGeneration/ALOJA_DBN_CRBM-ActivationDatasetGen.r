@@ -62,7 +62,7 @@ option_list = list(
     ),
     make_option(
                c("-i", "--data_file"), type= "character", default="AISPreprocessedData.data",
-               help="Learning rate for CRBM. Default 1e-6.", dest="dataFile"
+               help="Input data.", dest="dataFile"
     ),  
     make_option(
                c("-f", "--fast_test"), type= "numeric", default=-1,
