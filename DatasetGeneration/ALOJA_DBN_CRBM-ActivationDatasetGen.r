@@ -19,6 +19,8 @@
 #'
 #' Here we force OpenMP and OpenBLAS to use n_cores threads
 
+
+n_cores <- 40
 Sys.setenv(OPENBLAS_NUM_THREADS=n_cores, OMP_NUM_THREADS=n_cores)
 
 
@@ -93,11 +95,6 @@ opt
 
 attach(opt)
 
-#' Create folders for output
-
-dir.create(path = dirname(output))
-dir.create(path = dirname(crbm_output))
-
 #' # Parameters setup
 
 #' Select variables
@@ -110,11 +107,17 @@ plot_labels <-c("Rotation GPS","Speed Over Ground", "3-leveled Bathymetry")#
 today <- as.character(Sys.Date())
 cols <- paste(reqcols,collapse="-")
 
-# You may need to change to somewhere you want the results if you're using Jupyter
+ # You may need to change to somewhere you want the results if you're using Jupyter
 if (crbm_output == "") {
     print("CRBM save path not set. Setting default:")
     (crbm_output <- paste("Results/",today,"-shipcrbm","-",cols,"-","d_",delay,"-h_",n_hidden,"-t_",training_epochs,".Rdata",sep=""))
-} 
+}
+
+#' Create folders for output
+
+dir.create(path = dirname(output))
+dir.create(path = dirname(crbm_output))
+
 
 #' # Data preparation 
 #'

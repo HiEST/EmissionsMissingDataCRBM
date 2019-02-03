@@ -12,4 +12,5 @@ The repository is organized as follows:
     + NavStatus: Code and notes for checking the navigational status correlations
     + ShipTypePrediction: Code used to predict the ship type
     + MainEnginePrediction: Code used to predict the main engine power
+- Emission modeling: scripts to generate the final emission result
 
