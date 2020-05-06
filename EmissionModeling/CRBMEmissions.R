@@ -113,3 +113,4 @@ avg <- colSums(emisListAvg[,pollutants])/10^6
 
 
 results <- rbind(rea, act, his, avg)
+round(results, digits=2)
