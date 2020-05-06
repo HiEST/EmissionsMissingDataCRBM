@@ -25,7 +25,6 @@ source("emissions.R")
 
 cl <- 40
 
-IMOTestList <- MEPred$imo
 
 timeAttribute <- "fechahora"
 coordNames <- c("longitude", "latitude")
@@ -40,17 +39,20 @@ interpolationGranularity <- 10
 AISFile <- "AIS1week.csv"
 
 # Read IHS Data
-IHSData <- read.table(file = "IHSTestData.txt", sep = "\t", header = TRUE)
+IHSData <- read.table(file = "IHSTestData.csv", sep = "\t", header = TRUE)
 
-MEPred <- read.table(file = "powerME-Predictions.csv", sep =",", header=T)
+# IHS Preprocess
+IHSData$MainEngineRPM[is.na(IHSData$MainEngineRPM)] <- 514  # Jalkanen 2009
 
+MEPred <- read.table(file = "powerME-Predictions.csv", sep = ",", header=T)
 
+IMOTestList <- MEPred$imo
 
 #' # Power dataset preparation
 
 MEPred
 
-realpow <- IHSData[IHSData$LRIMOShipNO %in% shipIMOList,]
+realpow <- IHSData[IHSData$LRIMOShipNO %in% IMOTestList,]
 
 ihsfull <- merge(x = realpow, y = MEPred, by.x = 'LRIMOShipNO', by.y = 'imo')
 
@@ -69,47 +71,45 @@ pred_hist$installedPowerME <- avg$predicted_hist
 message("Reading data")
 ships <- read.table(AISFile, header=T, sep=",", quote="\"")
 
-shipIMOList <- intersect(IMOTestList, IHSData$LRIMOShipNO) 
+shipIMOList <- intersect(IMOTestList, IHSData$LRIMOShipNO)
 
-cl <- min(40,length(shipIMOList))
+cl <- min(4,length(shipIMOList))
 
 message("Estimating emissions")
-emisListReal <- estimateEmissions(ships, realpow, shipIMOList=shipIMOList, 
+emisListReal <- estimateEmissions(ships, realpow, shipIMOList=shipIMOList,
                cl=cl, meanEmissionFactors=TRUE, STEAMVer=STEAMVer,
                # Storage Params
                storageType=storageType, dbpath=emissionDBPath,
                interpolation=interpolationGranularity
-            ) 
+            )
 
 emisListAvg <- estimateEmissions(ships, avg, shipIMOList=shipIMOList, 
                cl=cl, meanEmissionFactors=TRUE, STEAMVer=STEAMVer,
                # Storage Params
                storageType=storageType, dbpath=emissionDBPath,
                interpolation=interpolationGranularity
-            ) 
+            )
 
-emisListPredAct <- estimateEmissions(ships, pred_act, shipIMOList=shipIMOList, 
+emisListPredAct <- estimateEmissions(ships, pred_act, shipIMOList=shipIMOList,
                cl=cl, meanEmissionFactors=TRUE, STEAMVer=STEAMVer,
                # Storage Params
                storageType=storageType, dbpath=emissionDBPath,
                interpolation=interpolationGranularity
-            ) 
+            )
 
-emisListPredHist <- estimateEmissions(ships, pred_hist, shipIMOList=shipIMOList, 
+emisListPredHist <- estimateEmissions(ships, pred_hist, shipIMOList=shipIMOList,
                cl=cl, meanEmissionFactors=TRUE, STEAMVer=STEAMVer,
                # Storage Params
                storageType=storageType, dbpath=emissionDBPath,
                interpolation=interpolationGranularity
-            ) 
+            )
 
-pollutants <- c("SOxME", "NOxME", "CO2ME")
+pollutants <- c("SOxME", "NOxME", "CO2ME", "PMME")
 
-colSums(emisListReal[,pollutants])/10^6
-
-colSums(emisListAvg[,pollutants])/10^6
-
-colSums(emisListPred[,pollutants])/10^6
-
-colSums(emisListPredHist[,pollutants])/10^6
+rea <- colSums(emisListReal[,pollutants])/10^6
+act <- colSums(emisListPredAct[,pollutants])/10^6
+his <- colSums(emisListPredHist[,pollutants])/10^6
+avg <- colSums(emisListAvg[,pollutants])/10^6
 
 
+results <- rbind(rea, act, his, avg)

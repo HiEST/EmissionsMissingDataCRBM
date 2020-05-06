@@ -10,17 +10,17 @@ source("tools/db.R")
 singleShipEstimation <- function(shipIMO, AISData, IHSData, interpolation = 1,
                                  maxTimeGap = 24*60*60, STEAMVersion = 1,
                                  meanEmissionFactors = TRUE,
-                                 ...) 
+                                 ...)
 {
     # Select data
     dAIS <- AISData[AISData$imo == shipIMO, ]
     parameters <- IHSData[IHSData$LRIMOShipNO == shipIMO, ]
-    
+
     if (nrow(parameters) > 1) {
         cat("[MAIN] Warning: duplicated parameters, using the first found.\n")
         parameters <- parameters[1, ]
     }
-    
+
     # Data interpolation
     if (!is.null(interpolation)) {
         dAIS <- fillSerieLinearly(dAIS,
@@ -36,9 +36,9 @@ singleShipEstimation <- function(shipIMO, AISData, IHSData, interpolation = 1,
 
     em = tryCatch({
         emR <- emFunct(dAIS, parameters, interpolation)
-      
+
         emR$emissions <- cbind(shipIMO, emR$emissions)
-        
+
         if (meanEmissionFactors) {
             emR$emissionFactors <- cbind(shipIMO, data.frame(t(colMeans(emR$emissionFactors))))
         } else {
@@ -49,37 +49,37 @@ singleShipEstimation <- function(shipIMO, AISData, IHSData, interpolation = 1,
         emR
     }, warning = function(w) {
         message("Warning: ", w, "\n Returning NA.")
-        error <- data.frame(shipIMO=shipIMO, type="warning", message=w$message) 
+        error <- data.frame(shipIMO=shipIMO, type="warning", message=w$message)
         emR <- list(emissions = NA, emissionFactors = NA, STEAMVersion = NA, error = error)
     }, error = function(e) {
         message("Error: ", e, "\n Returning NA.")
-        error <- data.frame(shipIMO=shipIMO, type="error", message=e$message) 
+        error <- data.frame(shipIMO=shipIMO, type="error", message=e$message)
         emR <- list(emissions = NA, emissionFactors = NA, STEAMVersion = NA, error = error)
     })
 
 
-    # Store OR return    
+    # Store OR return
     # return(em)
     storeData(em, ...)
 }
 
 
-shipSubsetEstimation <- function(shipIMOList, AISData, IHSData, cl=NULL, ...) 
+shipSubsetEstimation <- function(shipIMOList, AISData, IHSData, cl=NULL, ...)
 {
-    l <- condParLApply(cl, shipIMOList, singleShipEstimation, AISData=AISData, 
+    l <- condParLApply(cl, shipIMOList, singleShipEstimation, AISData=AISData,
                     IHSData=IHSData, ...)
 
 
     # Mark the ones that don't have an error field
-    valid <- sapply(l, function(x) !"error" %in% names(x)) 
-  
+    valid <- sapply(l, function(x) !"error" %in% names(x))
+
     if(sum(!valid) > 0) {
       message("The following errors were found when estimating emissions:")
       sapply(l[!valid], function(err) {
         message("    ", err$ship, ": ", err$error);
       })
     }
-   
+
     # Extract result
     message("Extracting emission results")
     em <- lapply(l[valid], function(x) x$emissions)
@@ -87,19 +87,19 @@ shipSubsetEstimation <- function(shipIMOList, AISData, IHSData, cl=NULL, ...)
     message("Merging data")
     df <- rbindlist(em[!is.na(em)])
     message("Transforming data into a data.frame")
-    #df <- setDF(df) 
+    #df <- setDF(df)
     class(df) <- "data.frame"
     return(df)
 }
 
 estimateEmissions <- function(ships, IHSData, cl,
     shipIMOList = NULL,
-    coordNames = c("longitude","latitude"),
-    vars = c("SOxME", "SOxAE", "NOxME", "NOxAE", "CO2ME", "CO2AE"), 
+    coordNames = c("longitude", "latitude"),
+    vars = c("SOxME", "SOxAE", "NOxME", "NOxAE", "CO2ME", "CO2AE"),
     ...) # ... Processing and Storage Parameters
 {
 
-    # Use ships that are present in IHS and AIS data. 
+    # Use ships that are present in IHS and AIS data.
     if (is.null(shipIMOList)) {
         AISIMO <- unique(ships$imo)
         shipIMOList <- intersect(AISIMO, IHSData$LRIMOShipNO) # All available ships on IHS datset
